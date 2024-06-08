@@ -58,6 +58,8 @@ client.on("messageCreate", async (message) => {
         pause(message, serverQueue);
     } else if (command === "!resume") {
         resume(message, serverQueue);
+    } else if (command === "!playnow") {
+        await playNow(message, serverQueue, args);
     }
 });
 
@@ -129,7 +131,10 @@ async function execute(message, serverQueue, args) {
 
                 play(message.guild, queueContruct.songs[0]);
             } catch (err) {
-                console.error("Error connecting to voice channel:", err);
+                console.error(
+                    "Error connecting to voice channel:",
+                    err.message,
+                );
                 queue.delete(message.guild.id);
                 return message.channel.send(
                     "There was an error connecting to the voice channel.",
@@ -142,10 +147,8 @@ async function execute(message, serverQueue, args) {
             );
         }
     } catch (error) {
-        console.error("Error executing command:", error);
-        message.channel.send(
-            "An error occurred while trying to execute the command.",
-        );
+        console.error("Error executing command:", error.message);
+        message.channel.send(`An error occurred: ${error.message}`);
     }
 }
 
@@ -161,10 +164,8 @@ function skip(message, serverQueue) {
     try {
         serverQueue.player.stop();
     } catch (error) {
-        console.error("Error skipping song:", error);
-        message.channel.send(
-            "An error occurred while trying to skip the song.",
-        );
+        console.error("Error skipping song:", error.message);
+        message.channel.send(`An error occurred: ${error.message}`);
     }
 }
 
@@ -183,10 +184,8 @@ function stop(message, serverQueue) {
         serverQueue.connection.destroy();
         queue.delete(message.guild.id);
     } catch (error) {
-        console.error("Error stopping song:", error);
-        message.channel.send(
-            "An error occurred while trying to stop the song.",
-        );
+        console.error("Error stopping song:", error.message);
+        message.channel.send(`An error occurred: ${error.message}`);
     }
 }
 
@@ -202,10 +201,8 @@ function pause(message, serverQueue) {
     try {
         serverQueue.player.pause();
     } catch (error) {
-        console.error("Error pausing song:", error);
-        message.channel.send(
-            "An error occurred while trying to pause the song.",
-        );
+        console.error("Error pausing song:", error.message);
+        message.channel.send(`An error occurred: ${error.message}`);
     }
 }
 
@@ -221,10 +218,87 @@ function resume(message, serverQueue) {
     try {
         serverQueue.player.unpause();
     } catch (error) {
-        console.error("Error resuming song:", error);
-        message.channel.send(
-            "An error occurred while trying to resume the song.",
+        console.error("Error resuming song:", error.message);
+        message.channel.send(`An error occurred: ${error.message}`);
+    }
+}
+
+async function playNow(message, serverQueue, args) {
+    const voiceChannel = message.member.voice.channel;
+    if (!voiceChannel) {
+        return message.channel.send(
+            "You need to be in a voice channel to play music!",
         );
+    }
+
+    const permissions = voiceChannel.permissionsFor(message.client.user);
+    if (
+        !permissions.has(PermissionsBitField.Flags.Connect) ||
+        !permissions.has(PermissionsBitField.Flags.Speak)
+    ) {
+        return message.channel.send(
+            "I need the permissions to join and speak in your voice channel!",
+        );
+    }
+
+    const query = args.join(" ");
+
+    try {
+        const videoResult = await ytSearch(query);
+        const video =
+            videoResult.videos.length > 0 ? videoResult.videos[0] : null;
+
+        if (!video) {
+            return message.channel.send("No results found.");
+        }
+
+        const song = {
+            title: video.title,
+            url: video.url,
+        };
+
+        if (!serverQueue) {
+            const queueContruct = {
+                textChannel: message.channel,
+                voiceChannel: voiceChannel,
+                connection: null,
+                player: createAudioPlayer(),
+                songs: [],
+                playing: true,
+            };
+
+            queue.set(message.guild.id, queueContruct);
+            queueContruct.songs.push(song);
+
+            try {
+                const connection = joinVoiceChannel({
+                    channelId: voiceChannel.id,
+                    guildId: message.guild.id,
+                    adapterCreator: message.guild.voiceAdapterCreator,
+                });
+
+                queueContruct.connection = connection;
+                connection.subscribe(queueContruct.player);
+
+                play(message.guild, queueContruct.songs[0]);
+            } catch (err) {
+                console.error(
+                    "Error connecting to voice channel:",
+                    err.message,
+                );
+                queue.delete(message.guild.id);
+                return message.channel.send(
+                    "There was an error connecting to the voice channel.",
+                );
+            }
+        } else {
+            serverQueue.songs.unshift(song);
+            serverQueue.player.stop();
+            return message.channel.send(`Now playing: **${song.title}**`);
+        }
+    } catch (error) {
+        console.error("Error executing command:", error.message);
+        message.channel.send(`An error occurred: ${error.message}`);
     }
 }
 
@@ -265,9 +339,9 @@ async function play(guild, song) {
             }
         });
     } catch (error) {
-        console.error("Error playing song:", error);
+        console.error("Error playing song:", error.message);
         serverQueue.textChannel.send(
-            "An error occurred while trying to play the song.",
+            `An error occurred while trying to play the song: ${error.message}`,
         );
         serverQueue.songs.shift();
         if (serverQueue.songs.length > 0) {
