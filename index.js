@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits } = require('discord.js');
 const { playYouTube } = require('./commands/playYouTube');
 const { playSpotify } = require('./commands/playSpotify');
 const { play, skip, stop, pause, resume, status, listSongs } = require('./commands/playerControl');
+const { help } = require('./commands/help');
 require('dotenv').config();
 
 const client = new Client({
@@ -41,6 +42,8 @@ client.on('messageCreate', async message => {
         status(message);
     } else if (command === '!list') {
         listSongs(message, serverQueue);
+    } else if (command === '!help') {
+        help(message);
     }
 });
 
