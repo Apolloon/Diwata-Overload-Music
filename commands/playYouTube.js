@@ -43,6 +43,12 @@ async function playYouTube(message, serverQueue, args, queue) {
                 title: item.title,
                 url: item.shortUrl,
             }));
+        } else if (ytdl.validateURL(query)) {
+            const info = await ytdl.getInfo(query);
+            songs.push({
+                title: info.videoDetails.title,
+                url: info.videoDetails.video_url,
+            });
         } else {
             const videoResult = await ytSearch(query);
             const video =
