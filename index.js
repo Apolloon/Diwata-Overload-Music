@@ -1,5 +1,5 @@
 const { Client, GatewayIntentBits, PermissionsBitField } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 const ytSearch = require('yt-search');
 const ytpl = require('ytpl');
@@ -74,6 +74,11 @@ client.on('messageCreate', async message => {
 });
 
 async function playYouTube(message, serverQueue, args) {
+    const query = args.join(' ');
+    if (!query) {
+        return message.channel.send('Please provide a search query.');
+    }
+
     const voiceChannel = message.member.voice.channel;
     if (!voiceChannel) {
         return message.channel.send('You need to be in a voice channel to play music!');
@@ -84,7 +89,6 @@ async function playYouTube(message, serverQueue, args) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
 
-    const query = args.join(' ');
     let songs = [];
 
     try {
@@ -150,6 +154,11 @@ async function playYouTube(message, serverQueue, args) {
 }
 
 async function playNowYouTube(message, serverQueue, args) {
+    const query = args.join(' ');
+    if (!query) {
+        return message.channel.send('Please provide a search query.');
+    }
+
     const voiceChannel = message.member.voice.channel;
     if (!voiceChannel) {
         return message.channel.send('You need to be in a voice channel to play music!');
@@ -159,8 +168,6 @@ async function playNowYouTube(message, serverQueue, args) {
     if (!permissions.has(PermissionsBitField.Flags.Connect) || !permissions.has(PermissionsBitField.Flags.Speak)) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
-
-    const query = args.join(' ');
 
     try {
         const videoResult = await ytSearch(query);
@@ -218,6 +225,11 @@ async function playNowYouTube(message, serverQueue, args) {
 }
 
 async function playYouTubeMusic(message, serverQueue, args) {
+    const query = args.join(' ');
+    if (!query) {
+        return message.channel.send('Please provide a search query.');
+    }
+
     const voiceChannel = message.member.voice.channel;
     if (!voiceChannel) {
         return message.channel.send('You need to be in a voice channel to play music!');
@@ -228,7 +240,6 @@ async function playYouTubeMusic(message, serverQueue, args) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
 
-    const query = args.join(' ');
     let songs = [];
 
     try {
@@ -294,6 +305,11 @@ async function playYouTubeMusic(message, serverQueue, args) {
 }
 
 async function playNowYouTubeMusic(message, serverQueue, args) {
+    const query = args.join(' ');
+    if (!query) {
+        return message.channel.send('Please provide a search query.');
+    }
+
     const voiceChannel = message.member.voice.channel;
     if (!voiceChannel) {
         return message.channel.send('You need to be in a voice channel to play music!');
@@ -303,8 +319,6 @@ async function playNowYouTubeMusic(message, serverQueue, args) {
     if (!permissions.has(PermissionsBitField.Flags.Connect) || !permissions.has(PermissionsBitField.Flags.Speak)) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
-
-    const query = args.join(' ');
 
     try {
         const videoResult = await ytSearch(query);
@@ -362,6 +376,11 @@ async function playNowYouTubeMusic(message, serverQueue, args) {
 }
 
 async function playSpotify(message, serverQueue, args) {
+    const query = args.join(' ');
+    if (!query) {
+        return message.channel.send('Please provide a search query.');
+    }
+
     const voiceChannel = message.member.voice.channel;
     if (!voiceChannel) {
         return message.channel.send('You need to be in a voice channel to play music!');
@@ -371,8 +390,6 @@ async function playSpotify(message, serverQueue, args) {
     if (!permissions.has(PermissionsBitField.Flags.Connect) || !permissions.has(PermissionsBitField.Flags.Speak)) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
-
-    const query = args.join(' ');
 
     try {
         const data = await spotifyApi.searchTracks(query);
@@ -429,6 +446,11 @@ async function playSpotify(message, serverQueue, args) {
 }
 
 async function playNowSpotify(message, serverQueue, args) {
+    const query = args.join(' ');
+    if (!query) {
+        return message.channel.send('Please provide a search query.');
+    }
+
     const voiceChannel = message.member.voice.channel;
     if (!voiceChannel) {
         return message.channel.send('You need to be in a voice channel to play music!');
@@ -438,8 +460,6 @@ async function playNowSpotify(message, serverQueue, args) {
     if (!permissions.has(PermissionsBitField.Flags.Connect) || !permissions.has(PermissionsBitField.Flags.Speak)) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
-
-    const query = args.join(' ');
 
     try {
         const data = await spotifyApi.searchTracks(query);
@@ -502,9 +522,11 @@ async function play(guild, song) {
     if (!song) {
         // If no new song found, wait 1 minute before leaving the voice channel
         serverQueue.timeout = setTimeout(() => {
-            serverQueue.connection.destroy();
-            queue.delete(guild.id);
-            serverQueue.textChannel.send('Leaving the voice channel due to inactivity.');
+            if (serverQueue.connection && serverQueue.connection.state.status !== VoiceConnectionStatus.Destroyed) {
+                serverQueue.connection.destroy();
+                queue.delete(guild.id);
+                serverQueue.textChannel.send('Leaving the voice channel due to inactivity.');
+            }
         }, 60000); // 1 minute delay before leaving
         return;
     }
@@ -523,9 +545,11 @@ async function play(guild, song) {
             } else {
                 serverQueue.textChannel.send('No more songs in queue.');
                 serverQueue.timeout = setTimeout(() => {
-                    serverQueue.connection.destroy();
-                    queue.delete(guild.id);
-                    serverQueue.textChannel.send('Leaving the voice channel due to inactivity.');
+                    if (serverQueue.connection && serverQueue.connection.state.status !== VoiceConnectionStatus.Destroyed) {
+                        serverQueue.connection.destroy();
+                        queue.delete(guild.id);
+                        serverQueue.textChannel.send('Leaving the voice channel due to inactivity.');
+                    }
                 }, 60000); // 1 minute delay before leaving
             }
         });
@@ -538,9 +562,11 @@ async function play(guild, song) {
             } else {
                 serverQueue.textChannel.send('An error occurred while playing the song.');
                 serverQueue.timeout = setTimeout(() => {
-                    serverQueue.connection.destroy();
-                    queue.delete(guild.id);
-                    serverQueue.textChannel.send('Leaving the voice channel due to inactivity.');
+                    if (serverQueue.connection && serverQueue.connection.state.status !== VoiceConnectionStatus.Destroyed) {
+                        serverQueue.connection.destroy();
+                        queue.delete(guild.id);
+                        serverQueue.textChannel.send('Leaving the voice channel due to inactivity.');
+                    }
                 }, 60000); // 1 minute delay before leaving
             }
         });
@@ -552,9 +578,11 @@ async function play(guild, song) {
             play(guild, serverQueue.songs[0]);
         } else {
             serverQueue.timeout = setTimeout(() => {
-                serverQueue.connection.destroy();
-                queue.delete(guild.id);
-                serverQueue.textChannel.send('Leaving the voice channel due to inactivity.');
+                if (serverQueue.connection && serverQueue.connection.state.status !== VoiceConnectionStatus.Destroyed) {
+                    serverQueue.connection.destroy();
+                    queue.delete(guild.id);
+                    serverQueue.textChannel.send('Leaving the voice channel due to inactivity.');
+                }
             }, 60000); // 1 minute delay before leaving
         }
     }
@@ -586,7 +614,9 @@ function stop(message, serverQueue) {
         clearTimeout(serverQueue.timeout);
         serverQueue.songs = [];
         serverQueue.player.stop();
-        serverQueue.connection.destroy();
+        if (serverQueue.connection && serverQueue.connection.state.status !== VoiceConnectionStatus.Destroyed) {
+            serverQueue.connection.destroy();
+        }
         queue.delete(message.guild.id);
     } catch (error) {
         console.error('Error stopping song:', error.message);
