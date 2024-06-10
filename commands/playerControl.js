@@ -135,7 +135,7 @@ function skip(message, serverQueue) {
     }
 }
 
-function stop(message, serverQueue) {
+function stop(message, serverQueue, queue) {
     if (!message.member.voice.channel) {
         return message.channel.send(
             "You have to be in a voice channel to stop the music!",

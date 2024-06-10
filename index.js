@@ -41,7 +41,7 @@ client.on("messageCreate", async (message) => {
     } else if (command === "!skip") {
         skip(message, serverQueue);
     } else if (command === "!stop") {
-        stop(message, serverQueue);
+        stop(message, serverQueue, queue);
     } else if (command === "!pause") {
         pause(message, serverQueue);
     } else if (command === "!resume") {
