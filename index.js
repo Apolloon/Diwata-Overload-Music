@@ -34,17 +34,10 @@ client.on("messageCreate", async (message) => {
 
     const serverQueue = queue.get(message.guild.id);
 
-    if (command === "!play") {
-        const query = args.join(" ");
-        if (query.includes("youtube.com") || query.includes("youtu.be")) {
-            await playYouTube(message, serverQueue, args, queue);
-        } else if (query.includes("spotify.com")) {
-            await playSpotify(message, serverQueue, args, queue);
-        } else {
-            return message.channel.send(
-                "Please provide a valid YouTube or Spotify URL.",
-            );
-        }
+    if (command === "!playyt" || command === "!playytm") {
+        await playYouTube(message, serverQueue, args, queue);
+    } else if (command === "!playsp") {
+        await playSpotify(message, serverQueue, args, queue);
     } else if (command === "!skip") {
         skip(message, serverQueue);
     } else if (command === "!stop") {
