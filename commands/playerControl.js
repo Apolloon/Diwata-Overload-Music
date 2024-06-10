@@ -73,4 +73,88 @@ async function play(guild, song, queue) {
     }
 }
 
-module.exports = { play };
+function skip(message, serverQueue) {
+    if (!message.member.voice.channel) {
+        return message.channel.send('You have to be in a voice channel to stop the music!');
+    }
+    if (!serverQueue) {
+        return message.channel.send('There is no song that I could skip!');
+    }
+    try {
+        serverQueue.player.stop();
+        serverQueue.textChannel.send('Skipping the current song.');
+    } catch (error) {
+        console.error('Error skipping song:', error.message);
+        message.channel.send(`An error occurred: ${error.message}`);
+    }
+}
+
+function stop(message, serverQueue) {
+    if (!message.member.voice.channel) {
+        return message.channel.send('You have to be in a voice channel to stop the music!');
+    }
+    if (!serverQueue) {
+        return message.channel.send('There is no song that I could stop!');
+    }
+    try {
+        clearTimeout(serverQueue.timeout);
+        serverQueue.songs = [];
+        serverQueue.player.stop();
+        if (serverQueue.connection && serverQueue.connection.state.status !== VoiceConnectionStatus.Destroyed) {
+            serverQueue.connection.destroy();
+        }
+        queue.delete(message.guild.id);
+    } catch (error) {
+        console.error('Error stopping song:', error.message);
+        message.channel.send(`An error occurred: ${error.message}`);
+    }
+}
+
+function pause(message, serverQueue) {
+    if (!message.member.voice.channel) {
+        return message.channel.send('You have to be in a voice channel to pause the music!');
+    }
+    if (!serverQueue) {
+        return message.channel.send('There is no song that I could pause!');
+    }
+    try {
+        serverQueue.player.pause();
+    } catch (error) {
+        console.error('Error pausing song:', error.message);
+        message.channel.send(`An error occurred: ${error.message}`);
+    }
+}
+
+function resume(message, serverQueue) {
+    if (!message.member.voice.channel) {
+        return message.channel.send('You have to be in a voice channel to resume the music!');
+    }
+    if (!serverQueue) {
+        return message.channel.send('There is no song that I could resume!');
+    }
+    try {
+        serverQueue.player.unpause();
+    } catch (error) {
+        console.error('Error resuming song:', error.message);
+        message.channel.send(`An error occurred: ${error.message}`);
+    }
+}
+
+function status(message) {
+    message.channel.send('The bot is running and ready to play songs!');
+}
+
+function listSongs(message, serverQueue) {
+    if (!serverQueue) {
+        return message.channel.send('There are no songs in the queue.');
+    }
+
+    let songList = 'Current queue:\n';
+    serverQueue.songs.forEach((song, index) => {
+        songList += `${index + 1}. ${song.title}\n`;
+    });
+
+    message.channel.send(songList);
+}
+
+module.exports = { play, skip, stop, pause, resume, status, listSongs };
