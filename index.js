@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const { playYouTube } = require('./commands/playYouTube');
+const { playYouTubeMusic } = require('./commands/playYouTubeMusic');
 const { playSpotify } = require('./commands/playSpotify');
 const { play, skip, stop, pause, resume, status, listSongs } = require('./commands/playerControl');
 const { help } = require('./commands/help');
@@ -21,6 +22,8 @@ client.once('ready', () => {
 });
 
 client.on('messageCreate', async message => {
+    if (message.author.bot) return;
+
     const args = message.content.split(' ');
     const command = args.shift().toLowerCase();
 
@@ -28,6 +31,8 @@ client.on('messageCreate', async message => {
 
     if (command === '!playyt') {
         await playYouTube(message, serverQueue, args, queue);
+    } else if (command === '!playytm') {
+        await playYouTubeMusic(message, serverQueue, args, queue);
     } else if (command === '!playsp') {
         await playSpotify(message, serverQueue, args, queue);
     } else if (command === '!skip') {

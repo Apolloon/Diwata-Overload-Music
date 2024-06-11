@@ -4,7 +4,7 @@ const ytSearch = require('yt-search');
 const { play } = require('./playerControl');
 const { PermissionsBitField } = require('discord.js');
 
-async function playYouTube(message, serverQueue, args, queue) {
+async function playYouTubeMusic(message, serverQueue, args, queue) {
     const query = args.join(' ');
     if (!query) {
         return message.channel.send('Please provide a search query.');
@@ -87,4 +87,4 @@ async function playYouTube(message, serverQueue, args, queue) {
     }
 }
 
-module.exports = { playYouTube };
+module.exports = { playYouTubeMusic };
