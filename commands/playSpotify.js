@@ -7,24 +7,13 @@ const {
 } = require("@discordjs/voice");
 const { PermissionsBitField } = require("discord.js");
 const { play } = require("./playerControl");
-const SpotifyWebApi = require("spotify-web-api-node");
+const {
+    spotifyApi,
+    getAccessToken,
+    refreshAccessToken,
+} = require("../spotifyAuth");
+
 require("dotenv").config();
-
-const spotifyApi = new SpotifyWebApi({
-    clientId: process.env.SPOTIFY_CLIENT_ID,
-    clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-    redirectUri: process.env.SPOTIFY_REDIRECT_URI,
-});
-
-// Retrieve an access token
-spotifyApi.clientCredentialsGrant().then(
-    (data) => {
-        spotifyApi.setAccessToken(data.body["access_token"]);
-    },
-    (err) => {
-        console.error("Error retrieving access token from Spotify", err);
-    },
-);
 
 async function playSpotify(message, serverQueue, args, queue) {
     const query = args.join(" ");
@@ -50,6 +39,7 @@ async function playSpotify(message, serverQueue, args, queue) {
     }
 
     try {
+        await getAccessToken();
         const data = await spotifyApi.searchTracks(query);
         const tracks = data.body.tracks.items;
 
@@ -108,8 +98,13 @@ async function playSpotify(message, serverQueue, args, queue) {
             );
         }
     } catch (error) {
-        console.error("Error executing Spotify command:", error.message);
-        message.channel.send(`An error occurred: ${error.message}`);
+        if (error.message.includes("The access token expired")) {
+            await refreshAccessToken();
+            return playSpotify(message, serverQueue, args, queue);
+        } else {
+            console.error("Error executing Spotify command:", error.message);
+            message.channel.send(`An error occurred: ${error.message}`);
+        }
     }
 }
 
